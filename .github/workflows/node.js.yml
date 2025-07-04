@@ -1,28 +1,50 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: Deploy to AWS EC2
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-  build:
-
-    runs-on: self-hosted
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+  deploy:
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+          
+      - name: Verify SSH Agent Setup
+        run: ssh-add -L    
+        
+      - name: Deploy CI/CD Demo AWS EC2
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
+            cd /home/ubuntu/node/CLASSIC_ALL_LUDO
+
+            echo "📦 Resetting and pulling latest code..."
+            git reset --hard
+            git pull origin main
+            
+            npm install
+            if ! command -v pm2 &> /dev/null; then
+              echo "PM2 not found, installing..."
+              sudo npm install -g pm2
+            fi
+          
+            # Start or restart the application with PM2
+            pm2 delete node-CI-CD || true
+            pm2 start || pm2 restart node-CI-CD
+            pm2 save
+          EOF
