@@ -38,7 +38,10 @@ jobs:
             git pull origin main
             
             npm install
-            
+            if ! command -v pm2 &> /dev/null; then
+              echo "PM2 not found, installing..."
+              sudo npm install -g pm2
+            fi
           
             # Start or restart the application with PM2
             pm2 delete node-CI-CD || true
