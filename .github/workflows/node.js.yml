@@ -38,9 +38,9 @@ jobs:
             git pull origin main
             
             npm install
+            echo "Ensuring PM2 is available..."
             if ! command -v pm2 &> /dev/null; then
-              echo "PM2 not found, installing..."
-              sudo npm install -g pm2
+              npm install -g pm2
             fi
           
             # Start or restart the application with PM2
