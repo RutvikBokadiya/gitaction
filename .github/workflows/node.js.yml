@@ -31,7 +31,7 @@ jobs:
           USERNAME: ${{ secrets.EC2_USERNAME }}
         run: |
           ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
-            cd /home/ubuntu/node/CLASSIC_ALL_LUDO
+            cd /home/ubuntu/node/gitaction
 
             echo "📦 Resetting and pulling latest code..."
             git reset --hard
