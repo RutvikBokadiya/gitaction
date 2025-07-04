@@ -1,0 +1,47 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+          
+      - name: Verify SSH Agent Setup
+        run: ssh-add -L    
+        
+      - name: Deploy CI/CD Demo AWS EC2
+        env:
+          HOST: ${{ secrets.EC2_HOST }}
+          USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
+            cd /home/ubuntu/node/gitaction
+
+            echo "📦 Resetting and pulling latest code..."
+            git reset --hard
+            git pull origin main
+            
+            npm install
+            
+          
+            # Start or restart the application with PM2
+            pm2 delete node-CI-CD || true
+            pm2 start || pm2 restart node-CI-CD
+            pm2 save
+          EOF
